@@ -99,6 +99,7 @@ dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); 
   <a href="#vue">Vue d'ensemble</a>
   <a href="#principes">Principes</a>
   <a href="#etape-0">Étape 0 · Socle</a>
+  <a href="#etape-1">Étape 1 · Ingestion</a>
   <a href="#glossaire">Glossaire</a>
 </nav>
 <main>
@@ -121,8 +122,8 @@ dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); 
 
 <ol class="timeline" id="timeline">
   <li class="done"><b>0 · fait</b>Socle du repo</li>
-  <li class="doing"><b>1 · en cours</b>Ingestion tweets</li>
-  <li class="todo"><b>2</b>Filtre IA</li>
+  <li class="done"><b>1 · fait</b>Ingestion tweets</li>
+  <li class="doing"><b>2 · en cours</b>Filtre IA</li>
   <li class="todo"><b>3</b>Fact-check IA</li>
   <li class="todo"><b>4</b>Évaluation (golden set)</li>
   <li class="todo"><b>5</b>Cron + CD</li>
@@ -322,27 +323,161 @@ dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); 
 </article>
 </section>
 
+<!-- ============ ÉTAPE 1 ============ -->
+<section class="step" id="etape-1">
+<h2>Étape 1 · Ingestion des tweets</h2>
+<p class="lead">Récupérer les tweets et retweets des deux candidats, sans doublon, sans payer deux fois, et sans perdre de données si ça plante. Code : <code>pipeline/ingest.py</code>.</p>
+
+<article class="card" id="c-idempotence">
+  <div class="head"><h3>Idempotence</h3><span class="badge">P6</span><span class="badge">P10</span></div>
+  <div class="flow">
+    <div class="node">Run 1<small>récupère 1→12</small></div><span class="arrow">→</span>
+    <div class="node key">since_id = 12<small>lu dans les données</small></div><span class="arrow">→</span>
+    <div class="node ok">Run 2<small>ne demande que &gt; 12</small></div><span class="arrow">→</span>
+    <div class="node ok">Run 2 bis<small>0 nouveau, 0 doublon</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Lancer le job 1 ou 10 fois aboutit au même état final.</p></div>
+    <div><h4>Pourquoi</h4><p>Un cron relance, un job plante puis repart, un humain clique deux fois. Sans idempotence : des doublons dans les stats, et une double facture X.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>load_existing()</code> relit le fichier pour connaître les IDs déjà stockés et le dernier ID par compte. On envoie ce <code>since_id</code> à X, qui ne renvoie (et ne facture) que les nouveaux. Il n'y a <b>pas de fichier d'état séparé</b> : l'état se déduit des données, donc il ne peut pas se désynchroniser d'elles.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Un <code>fit</code> déterministe : même entrée, même modèle. Ou le cache de joblib qui ne recalcule pas ce qui existe déjà.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Stocker « dernière exécution = 14h » dans un fichier à part. Le jour où le job plante entre l'écriture des données et celle de l'état, les deux divergent.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-crash">
+  <div class="head"><h3>Résister aux crashs : l'ordre d'écriture</h3><span class="badge">P6</span></div>
+  <div class="layers">
+    <div class="layer l3">✗ Écrire chaque tweet dès réception (X renvoie le plus récent d'abord) → crash → since_id = le plus récent → les plus anciens sont <b>perdus</b></div>
+    <div class="layer l2">✓ Tout récupérer, trier du plus ancien au plus récent, puis écrire → crash avant = on refait simplement l'appel</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Choisir l'ordre des opérations pour qu'un arrêt brutal à n'importe quel moment laisse un état récupérable.</p></div>
+    <div><h4>Pourquoi</h4><p>En prod, tout finit par planter (réseau, timeout, runner tué). La question n'est pas « si » mais « dans quel état ça laisse les données ».</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Dans <code>main()</code> : <code>fresh.sort(...)</code> puis écriture en bloc, compte par compte.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Les checkpoints d'entraînement : on sauvegarde un état cohérent, pas un modèle à moitié mis à jour.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Ne tester que le « chemin heureux ». Demande-toi toujours : « et si ça plante <i>ici</i> ? »</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-bronze">
+  <div class="head"><h3>Couche brute append-only (bronze)</h3><span class="badge">P5</span><span class="badge">P1</span></div>
+  <div class="flow">
+    <div class="node key">API X</div><span class="arrow">→</span>
+    <div class="node">data/raw/tweets.jsonl<small>bronze · brut, jamais modifié</small></div><span class="arrow">→</span>
+    <div class="node">claims<small>silver · étape 2</small></div><span class="arrow">→</span>
+    <div class="node">scores<small>gold · étape 6</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>On garde la réponse de l'API telle quelle, et on ne fait qu'ajouter des lignes à la fin (append-only). Une ligne JSON = un tweet (JSONL).</p></div>
+    <div><h4>Pourquoi</h4><p>Si on change le prompt ou le calcul du score, on peut tout recalculer depuis le brut sans repayer l'API.</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Chaque ligne contient <code>account</code>, l'objet <code>tweet</code> brut, les tweets <code>referenced</code> (texte complet d'un retweet ou d'une citation) et <code>fetched_at</code>. Le fichier est versionné dans git : chaque ajout est un diff lisible.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Ne jamais écraser le dataset source avec sa version nettoyée. Le notebook de nettoyage doit pouvoir être relancé.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Ne garder que les champs « utiles aujourd'hui ». Le jour où tu veux les likes ou la langue, il faut tout re-télécharger.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-retry">
+  <div class="head"><h3>Retry avec backoff exponentiel</h3><span class="badge">P7</span></div>
+  <div class="flow">
+    <div class="node bad">503</div><span class="arrow">→</span>
+    <div class="node">attente 5 s</div><span class="arrow">→</span>
+    <div class="node bad">503</div><span class="arrow">→</span>
+    <div class="node">attente 10 s</div><span class="arrow">→</span>
+    <div class="node bad">503</div><span class="arrow">→</span>
+    <div class="node">20 s</div><span class="arrow">→</span>
+    <div class="node ok">200 ✓</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>En cas d'erreur <b>temporaire</b>, on réessaie en doublant l'attente à chaque fois. On n'insiste jamais sur une erreur <b>définitive</b>.</p></div>
+    <div><h4>Pourquoi</h4><p>Les API ont des pannes de quelques secondes et des quotas (rate limits). Réessayer en boucle immédiate aggrave la surcharge et peut te faire bannir.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>get()</code> : on retente sur 429 (quota, en attendant l'heure indiquée par l'en-tête <code>x-rate-limit-reset</code>), sur 5xx et sur les erreurs réseau. Sur un 4xx (clé invalide, accès refusé), le job échoue tout de suite et logge la réponse.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Le learning-rate scheduler qui recule quand ça diverge, plutôt que de pousser plus fort.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Retenter aussi les 401/403 : on attend 10 minutes pour une erreur qui ne se corrigera jamais toute seule.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-env">
+  <div class="head"><h3>Configuration par variables d'environnement</h3><span class="badge">P4</span></div>
+  <div class="flow">
+    <div class="node">local<small>uv run --env-file .env</small></div>
+    <div class="node">CI / cron<small>secrets GitHub → env</small></div><span class="arrow">→</span>
+    <div class="node key">os.environ["X_BEARER_TOKEN"]</div><span class="arrow">→</span>
+    <div class="node ok">même code partout</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Le code ne contient aucune clé : il les lit dans l'environnement au moment où il s'exécute. C'est un principe de la méthode « 12-factor app ».</p></div>
+    <div><h4>Pourquoi</h4><p>Le même code tourne sur ta machine et en CI, seul l'environnement change. Les secrets restent hors du code (voir <a href="#c-secrets">Gestion des secrets</a>).</p></div>
+    <div class="full"><h4>Chez nous</h4><p>En local : <code>uv run --env-file .env python -m pipeline.ingest</code>. Au cron (étape 5), GitHub injectera le secret. Si la variable manque, <code>os.environ[...]</code> plante <b>tout de suite</b> avec un message clair.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Les hyperparamètres passés en arguments plutôt que codés en dur dans le script d'entraînement.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p><code>os.getenv("KEY", "valeur-par-défaut")</code> pour un secret : le job tourne silencieusement avec une mauvaise clé.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-mock">
+  <div class="head"><h3>Tests unitaires sans réseau (mock)</h3><span class="badge">P8</span></div>
+  <div class="flow">
+    <div class="node">fetch()</div><span class="arrow">→</span>
+    <div class="node bad">✗ vraie API X<small>lent, payant, instable</small></div>
+    <div class="node ok">✓ faux get()<small>pages préparées</small></div><span class="arrow">→</span>
+    <div class="node ok">assert</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>On remplace l'appel réseau par une fausse fonction qui renvoie des réponses préparées, puis on vérifie la logique autour.</p></div>
+    <div><h4>Pourquoi</h4><p>Les tests tournent à chaque PR : ils doivent être rapides, gratuits et déterministes, et ne jamais toucher une vraie clé.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>tests/test_ingest.py</code> : <code>monkeypatch</code> remplace <code>get</code>. On teste la pagination, le rattachement du texte complet des retweets, et le piège du tri <code>"10" &lt; "9"</code> (en texte, pas en entier). En CI : <code>uv run --locked pytest</code>, qui échoue si le <a href="#c-repro">lockfile</a> n'est pas à jour.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Tester son preprocessing sur un mini-DataFrame écrit à la main, plutôt que sur le dataset de 10 Go.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Mocker tellement que le test ne vérifie plus que le mock lui-même. On mocke la frontière (le réseau), pas la logique.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-cost">
+  <div class="head"><h3>Coût estimé à chaque run</h3><span class="badge">P10</span><span class="badge">P7</span></div>
+  <div class="flow">
+    <div class="node">posts lus<small>tweets + retweetés</small></div><span class="arrow">→</span>
+    <div class="node key">× 0,005 $</div><span class="arrow">→</span>
+    <div class="node ok">log : « coût estimé 0,045 $ »</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Chaque exécution affiche ce qu'elle a coûté.</p></div>
+    <div><h4>Pourquoi</h4><p>Une boucle de pagination folle ou un since_id cassé se voient dans le log du jour, pas sur la facture du mois.</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Dernière ligne de log de <code>ingest</code>. Un retweet coûte 2 lectures (le RT et l'original complet). C'est un choix assumé pour pouvoir fact-checker le vrai texte.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Suivre le temps GPU par expérience dans MLflow.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Ne compter que sur le plafond de la console : il coupe le service, mais il ne dit pas <i>pourquoi</i> ça a dépensé.</p></div>
+  </div>
+</article>
+</section>
+
 <!-- ============ GLOSSAIRE ============ -->
 <section id="glossaire">
 <h2>Glossaire</h2>
 <dl class="gloss">
+  <dt>Append-only</dt><dd>Stockage où l'on ne fait qu'ajouter, sans jamais modifier ni supprimer.</dd>
+  <dt>Backoff exponentiel</dt><dd>Attente doublée entre chaque nouvel essai après une erreur temporaire.</dd>
   <dt>Branche</dt><dd>Ligne de travail parallèle à <code>main</code>, fusionnée via une PR.</dd>
-  <dt>CI</dt><dd>Intégration continue : vérifications automatiques à chaque push.</dd>
+  <dt>Bronze / silver / gold</dt><dd>Couches de données : brut → nettoyé → agrégé pour l'affichage.</dd>
   <dt>Checksum</dt><dd>Empreinte d'un fichier, qui prouve qu'il n'a pas été modifié.</dd>
+  <dt>CI</dt><dd>Intégration continue : vérifications automatiques à chaque push.</dd>
   <dt>Commit</dt><dd>Photo datée et signée d'un ensemble de modifications.</dd>
-  <dt>Défense en profondeur</dt><dd>Plusieurs barrières indépendantes contre un même risque.</dd>
   <dt>Dependabot</dt><dd>Robot GitHub qui propose les mises à jour de dépendances.</dd>
+  <dt>Défense en profondeur</dt><dd>Plusieurs barrières indépendantes contre un même risque.</dd>
   <dt>gitleaks</dt><dd>Outil qui détecte les secrets (clés, tokens) dans le code et l'historique.</dd>
   <dt>Hook pre-commit</dt><dd>Script lancé automatiquement avant chaque commit.</dd>
+  <dt>Idempotence</dt><dd>Relancer une opération ne change pas le résultat au-delà du premier passage.</dd>
+  <dt>JSONL</dt><dd>Fichier texte avec un objet JSON par ligne : facile à ajouter, à lire et à comparer.</dd>
   <dt>Lockfile</dt><dd>Fichier qui fige la version exacte de chaque dépendance (<code>uv.lock</code>).</dd>
+  <dt>Mock</dt><dd>Fausse version d'une dépendance (réseau, API) utilisée dans les tests.</dd>
   <dt>Moindre privilège</dt><dd>Ne donner à chaque composant que les droits nécessaires.</dd>
   <dt>Pull Request (PR)</dt><dd>Demande de fusion d'une branche, avec revue et CI.</dd>
   <dt>Push protection</dt><dd>Fonction GitHub qui refuse un push contenant un secret connu.</dd>
+  <dt>Rate limit</dt><dd>Nombre maximal d'appels autorisés par une API sur une période.</dd>
   <dt>Ruleset</dt><dd>Règles GitHub qui protègent une branche (PR obligatoire, CI verte…).</dd>
   <dt>Runner</dt><dd>Machine (neuve à chaque fois) qui exécute un job GitHub Actions.</dd>
   <dt>SHA</dt><dd>Empreinte unique et immuable d'un commit.</dd>
   <dt>Shift-left</dt><dd>Déplacer les contrôles le plus tôt possible dans la chaîne.</dd>
+  <dt>since_id</dt><dd>Paramètre X : « seulement les tweets plus récents que cet ID ».</dd>
   <dt>Supply chain</dt><dd>Tout le code tiers dont on dépend (paquets, actions, binaires).</dd>
+  <dt>Variable d'environnement</dt><dd>Valeur fournie au programme par le système, hors du code (ex. une clé API).</dd>
 </dl>
 </section>
 
