@@ -1,0 +1,9 @@
+# PR auto quand une action ou une dépendance a une mise à jour (les SHA épinglés ne vieillissent pas seuls).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+  - package-ecosystem: uv
+    directory: /
+    schedule: {interval: weekly}

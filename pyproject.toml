@@ -1,0 +1,9 @@
+[project]
+name = "jlm-vs-mlp"
+version = "0.1.0"
+description = "Duel de crédibilité JLM vs MLP : tweets fact-checkés par IA"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.ruff]
+line-length = 100
