@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carnet DevOps JLM vs MLP</title>
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1f; --muted: #5f6368; --border: #e2e2de;
+  --accent: #2f5bea; --accent-soft: #e8eefd; --ok: #1e8a4c; --ok-soft: #e3f4ea;
+  --warn: #b25e09; --warn-soft: #fdf0e1; --bad: #c0362c; --bad-soft: #fbe7e5;
+  --code-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131417; --surface: #1c1d21; --text: #ececee; --muted: #a0a3a9; --border: #2e3036;
+    --accent: #7c9cff; --accent-soft: #1f2840; --ok: #4cc38a; --ok-soft: #16301f;
+    --warn: #f0a65a; --warn-soft: #33261a; --bad: #ff7b72; --bad-soft: #3a1d1b; --code-bg: #26272c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131417; --surface: #1c1d21; --text: #ececee; --muted: #a0a3a9; --border: #2e3036;
+  --accent: #7c9cff; --accent-soft: #1f2840; --ok: #4cc38a; --ok-soft: #16301f;
+  --warn: #f0a65a; --warn-soft: #33261a; --bad: #ff7b72; --bad-soft: #3a1d1b; --code-bg: #26272c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 0 16px 64px; }
+h1 { font-size: 2rem; margin: 40px 0 4px; letter-spacing: -0.02em; }
+h2 { font-size: 1.4rem; margin: 48px 0 8px; padding-top: 8px; }
+h3 { font-size: 1.1rem; margin: 0 0 12px; }
+p.lead { color: var(--muted); margin: 0 0 24px; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: .88em; }
+a { color: var(--accent); }
+
+nav { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid var(--border);
+  display: flex; gap: 4px; overflow-x: auto; padding: 10px 16px; }
+nav a { white-space: nowrap; text-decoration: none; padding: 4px 10px; border-radius: 999px;
+  font-size: .9rem; color: var(--muted); }
+nav a:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* Timeline */
+.timeline { list-style: none; padding: 0; margin: 16px 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.timeline li { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; font-size: .9rem; }
+.timeline li b { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+.timeline .done { border-color: var(--ok); } .timeline .done b { color: var(--ok); }
+.timeline .doing { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.timeline .doing b { color: var(--accent); }
+.timeline .todo { color: var(--muted); }
+
+/* Principes */
+.principles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.principle { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.principle p { margin: 4px 0 0; color: var(--muted); font-size: .92rem; }
+
+.badge { display: inline-block; font-size: .72rem; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); margin-right: 4px; vertical-align: middle; }
+
+/* Cartes concept */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin: 16px 0; }
+.card .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.card .head h3 { margin: 0; flex: 1 1 auto; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.grid > div h4 { margin: 0 0 2px; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.grid > div p { margin: 0; }
+.grid .full { grid-column: 1 / -1; }
+.ds { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; }
+.trap { background: var(--warn-soft); border-radius: 8px; padding: 10px 12px; }
+.trap h4 { color: var(--warn) !important; }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+/* Schéma : flux */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 16px; }
+.node { border: 1.5px solid var(--border); background: var(--bg); border-radius: 8px; padding: 6px 10px;
+  font-size: .88rem; text-align: center; }
+.node small { display: block; color: var(--muted); font-size: .75rem; }
+.node.ok { border-color: var(--ok); background: var(--ok-soft); }
+.node.bad { border-color: var(--bad); background: var(--bad-soft); }
+.node.key { border-color: var(--accent); background: var(--accent-soft); }
+.arrow { color: var(--muted); font-size: 1.1rem; }
+
+/* Schéma : couches */
+.layers { display: grid; gap: 6px; margin: 4px 0 16px; }
+.layer { border-left: 4px solid var(--accent); background: var(--bg); border-radius: 6px; padding: 6px 12px; font-size: .9rem; }
+.layer.l2 { border-color: var(--ok); } .layer.l3 { border-color: var(--warn); }
+
+/* Glossaire */
+dl.gloss { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; }
+dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); }
+@media (max-width: 640px) { dl.gloss { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+</style>
+</head>
+<body>
+<nav>
+  <a href="#vue">Vue d'ensemble</a>
+  <a href="#principes">Principes</a>
+  <a href="#etape-0">Étape 0 · Socle</a>
+  <a href="#glossaire">Glossaire</a>
+</nav>
+<main>
+
+<h1>Carnet DevOps</h1>
+<p class="lead">Projet <b>JLM vs MLP</b> : chaque concept DevOps rencontré, expliqué une fois, avec un schéma, et relié à ce que tu connais déjà en data science.</p>
+
+<!-- ============ VUE D'ENSEMBLE ============ -->
+<section id="vue">
+<h2>Vue d'ensemble</h2>
+<p>Le système complet : un job planifié transforme des tweets en verdicts, puis en site. Pas de serveur.</p>
+<div class="flow">
+  <div class="node key">⏰ Cron<small>GitHub Actions</small></div><span class="arrow">→</span>
+  <div class="node">Ingest<small>API X</small></div><span class="arrow">→</span>
+  <div class="node">Filtre<small>factuel ?</small></div><span class="arrow">→</span>
+  <div class="node">Fact-check<small>LLM + web</small></div><span class="arrow">→</span>
+  <div class="node">Build<small>scores</small></div><span class="arrow">→</span>
+  <div class="node ok">🌐 Site<small>GitHub Pages</small></div>
+</div>
+
+<ol class="timeline" id="timeline">
+  <li class="done"><b>0 · fait</b>Socle du repo</li>
+  <li class="doing"><b>1 · en cours</b>Ingestion tweets</li>
+  <li class="todo"><b>2</b>Filtre IA</li>
+  <li class="todo"><b>3</b>Fact-check IA</li>
+  <li class="todo"><b>4</b>Évaluation (golden set)</li>
+  <li class="todo"><b>5</b>Cron + CD</li>
+  <li class="todo"><b>6</b>Dashboard</li>
+  <li class="todo"><b>7</b>Observabilité</li>
+  <li class="todo"><b>8</b>Durcissement</li>
+</ol>
+</section>
+
+<!-- ============ PRINCIPES ============ -->
+<section id="principes">
+<h2>Les 10 principes</h2>
+<p class="lead">On les vérifie avant chaque étape. Les badges <span class="badge">P1</span> sur les cartes renvoient ici.</p>
+<div class="principles">
+  <div class="principle"><span class="badge">P1</span><b>Tout est code</b><p>Config, CI, schémas : dans git. Ce qui n'est pas versionné n'existe pas.</p></div>
+  <div class="principle"><span class="badge">P2</span><b>Automatiser</b><p>Une tâche répétée à la main finit par être oubliée ou mal faite.</p></div>
+  <div class="principle"><span class="badge">P3</span><b>Petits changements</b><p>Une branche, une PR, un sujet. <code>main</code> reste toujours vert.</p></div>
+  <div class="principle"><span class="badge">P4</span><b>Sécurité dès le départ</b><p>Secrets hors du code, droits minimaux, entrées externes = non fiables.</p></div>
+  <div class="principle"><span class="badge">P5</span><b>Reproductibilité</b><p>Même code + même lockfile = même résultat, partout.</p></div>
+  <div class="principle"><span class="badge">P6</span><b>Idempotence</b><p>Relancer un job deux fois ne crée ni doublon ni double facture.</p></div>
+  <div class="principle"><span class="badge">P7</span><b>Observabilité</b><p>Si ça casse la nuit, on le sait sans aller vérifier.</p></div>
+  <div class="principle"><span class="badge">P8</span><b>Feedback rapide</b><p>Attraper l'erreur au plus tôt : machine &gt; CI &gt; prod.</p></div>
+  <div class="principle"><span class="badge">P9</span><b>Simplicité</b><p>La solution la plus simple qui marche. Le reste quand le besoin est prouvé.</p></div>
+  <div class="principle"><span class="badge">P10</span><b>Coûts maîtrisés</b><p>Plafonds, cache, coût par run connu. On ne découvre pas la facture.</p></div>
+</div>
+</section>
+
+<!-- ============ ÉTAPE 0 ============ -->
+<section class="step" id="etape-0">
+<h2>Étape 0 · Le socle du repo</h2>
+<p class="lead">Avant la moindre ligne de code métier : un repo où il est <i>difficile</i> de faire une bêtise.</p>
+
+<article class="card" id="c-git">
+  <div class="head"><h3>Versioning avec git</h3><span class="badge">P1</span></div>
+  <div class="flow">
+    <div class="node">Modif</div><span class="arrow">→</span>
+    <div class="node">commit<small>photo datée</small></div><span class="arrow">→</span>
+    <div class="node">push<small>vers GitHub</small></div><span class="arrow">→</span>
+    <div class="node ok">historique<small>retour arrière possible</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Un historique de toutes les versions du projet, avec qui a changé quoi et pourquoi.</p></div>
+    <div><h4>Pourquoi</h4><p>Revenir en arrière, comprendre un bug, travailler à plusieurs sans s'écraser.</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Repo public <code>badgiojuni/jlm-vs-mlp</code>. Messages de commit préfixés (<code>chore:</code>, <code>feat:</code>, <code>fix:</code>) : c'est la convention <i>Conventional Commits</i>.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Comme MLflow qui trace chaque expérience, mais pour le code et la config.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Committer des données lourdes ou des secrets : l'historique les garde <b>pour toujours</b>, même après suppression.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-pr">
+  <div class="head"><h3>Branche, Pull Request et protection de main</h3><span class="badge">P3</span><span class="badge">P8</span></div>
+  <div class="flow">
+    <div class="node">branche<small>feat/ingest</small></div><span class="arrow">→</span>
+    <div class="node">Pull Request</div><span class="arrow">→</span>
+    <div class="node key">CI <code>checks</code></div><span class="arrow">→</span>
+    <div class="node ok">✓ merge dans main</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>On ne modifie jamais <code>main</code> directement : on travaille sur une branche, puis on propose la fusion (PR).</p></div>
+    <div><h4>Pourquoi</h4><p><code>main</code> est ce qui tourne en prod. Il doit toujours fonctionner. La PR est le point de contrôle.</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Ruleset GitHub <code>protect-main</code> : push direct interdit, PR obligatoire, CI verte obligatoire, pas de force-push ni de suppression.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Le jeu de test : un modèle ne part pas en prod s'il ne passe pas la validation. Ici, le code ne rentre pas dans main sans passer la CI.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Des PR énormes qui mélangent cinq sujets : impossibles à relire, et difficiles à annuler.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-secrets">
+  <div class="head"><h3>Gestion des secrets</h3><span class="badge">P4</span></div>
+  <div class="flow">
+    <div class="node ok">.env<small>ta machine, ignoré par git</small></div>
+    <div class="node ok">GitHub Secrets<small>chiffrés, pour la CI</small></div>
+    <div class="node bad">✗ le code<small>jamais</small></div>
+    <div class="node bad">✗ le chat<small>jamais</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Les clés API vivent hors du code, et le code les lit dans des variables d'environnement.</p></div>
+    <div><h4>Pourquoi</h4><p>Sur un repo public, des bots aspirent les clés en <b>quelques minutes</b> et les utilisent à tes frais.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>.env</code> (dans <code>.gitignore</code>) contient les vraies clés. <code>.env.example</code>, versionné, liste les noms sans les valeurs. Plafond de dépense sur chaque clé (X et OpenRouter).</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Comme ne jamais mettre le mot de passe de la base dans un notebook partagé.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>« Je supprime la clé dans le commit suivant. » Trop tard : elle reste dans l'historique. Il faut la <b>révoquer</b> et en générer une nouvelle.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-shiftleft">
+  <div class="head"><h3>Shift-left : les hooks pre-commit</h3><span class="badge">P8</span><span class="badge">P4</span></div>
+  <div class="flow">
+    <div class="node">git commit</div><span class="arrow">→</span>
+    <div class="node key">hooks<small>ruff · yaml · gitleaks</small></div><span class="arrow">→</span>
+    <div class="node ok">✓ commit créé</div>
+    <div class="node bad">✗ bloqué<small>avant de quitter ta machine</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Des vérifications lancées automatiquement à chaque <code>git commit</code>, sur ta machine.</p></div>
+    <div><h4>Pourquoi</h4><p>Plus une erreur est attrapée tôt (à gauche dans la chaîne), moins elle coûte.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>.pre-commit-config.yaml</code> : <code>ruff</code> (lint et format Python), vérifs YAML et fins de fichiers, <code>gitleaks</code> (secrets). Testé : un faux token GitHub a bien été bloqué.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Valider le schéma des données à l'entrée du pipeline, plutôt que découvrir un NaN après 3 h d'entraînement.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p><code>git commit --no-verify</code> contourne les hooks. C'est pour ça que la CI refait les mêmes vérifs.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-ci">
+  <div class="head"><h3>Intégration continue (CI)</h3><span class="badge">P2</span><span class="badge">P8</span></div>
+  <div class="flow">
+    <div class="node">push / PR</div><span class="arrow">→</span>
+    <div class="node key">runner GitHub<small>machine neuve</small></div><span class="arrow">→</span>
+    <div class="node">hooks</div><span class="arrow">→</span>
+    <div class="node">gitleaks<small>tout l'historique</small></div><span class="arrow">→</span>
+    <div class="node ok">✓ / ✗ sur la PR</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>À chaque push, une machine neuve récupère le code et lance les vérifications.</p></div>
+    <div><h4>Pourquoi</h4><p>Une machine neuve n'a pas « ton » environnement : elle prouve que ça marche ailleurs que chez toi.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>.github/workflows/ci.yml</code> : relance <code>pre-commit</code> (mêmes règles qu'en local), puis scanne <b>tout</b> l'historique git avec gitleaks.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Relancer le notebook « Restart &amp; Run All » sur un kernel vierge avant de partager.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Avoir des règles différentes en local et en CI : « ça passe chez moi » mais rouge en CI. D'où une seule config partagée.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-repro">
+  <div class="head"><h3>Reproductibilité : le lockfile</h3><span class="badge">P5</span></div>
+  <div class="flow">
+    <div class="node">pyproject.toml<small>« requests ≥ 2 »</small></div><span class="arrow">→</span>
+    <div class="node key">uv lock</div><span class="arrow">→</span>
+    <div class="node ok">uv.lock<small>« requests == 2.32.4 + hash »</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p><code>pyproject.toml</code> dit ce qu'on veut. <code>uv.lock</code> fige la version <b>exacte</b> et l'empreinte de chaque paquet installé.</p></div>
+    <div><h4>Pourquoi</h4><p>Sans lockfile, une nouvelle version d'une dépendance peut tout casser du jour au lendemain, sans qu'on ait rien changé.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>uv sync</code> installe exactement ce qui est dans <code>uv.lock</code>, en local comme en CI.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Fixer le <code>random_state</code> : même entrée, même sortie, à chaque fois.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Ajouter un paquet avec <code>pip install</code> à la main : il n'est ni dans le lockfile ni dans la CI. Toujours <code>uv add</code>.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-supply">
+  <div class="head"><h3>Chaîne d'approvisionnement : épingler par SHA</h3><span class="badge">P4</span><span class="badge">P5</span></div>
+  <div class="flow">
+    <div class="node bad">@v7<small>étiquette déplaçable</small></div>
+    <div class="node ok">@3d3c42e…<small>empreinte immuable</small></div>
+    <div class="node ok">sha256sum -c<small>binaire vérifié</small></div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Référencer le code tiers par son empreinte (SHA), et pas par un nom de version qu'on peut déplacer.</p></div>
+    <div><h4>Pourquoi</h4><p>Si un attaquant pirate une action GitHub et redéplace le tag <code>v7</code>, tous ceux qui utilisent <code>@v7</code> exécutent son code. Ça s'est déjà produit (tj-actions, 2025).</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Actions et hooks épinglés par SHA (la version en commentaire). Le binaire gitleaks téléchargé en CI est vérifié par checksum avant d'être exécuté.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Citer un dataset par son hash (DVC) plutôt que par « la dernière version sur le drive ».</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Épingler puis ne jamais mettre à jour : on garde des failles connues. Voir <a href="#c-dependabot">Dependabot</a>.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-privilege">
+  <div class="head"><h3>Moindre privilège</h3><span class="badge">P4</span></div>
+  <div class="layers">
+    <div class="layer l2">Job CI : <code>contents: read</code>, peut lire le code et rien d'autre</div>
+    <div class="layer l3">Clés API : plafond de dépense, donc perte bornée si une clé fuit</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Chaque composant reçoit uniquement les droits dont il a besoin, rien de plus.</p></div>
+    <div><h4>Pourquoi</h4><p>Si un composant est compromis, les dégâts sont limités à ce qu'il avait le droit de faire.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>permissions: contents: read</code> dans <code>ci.yml</code>. Le futur job cron aura <code>contents: write</code> (il commit les données), mais <b>lui seul</b>.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Un compte de base de données en lecture seule pour les dashboards, et pas le compte admin.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Donner « tous les droits » pour que ça marche vite, puis ne jamais les retirer.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-dependabot">
+  <div class="head"><h3>Mises à jour automatiques : Dependabot</h3><span class="badge">P2</span><span class="badge">P4</span></div>
+  <div class="flow">
+    <div class="node">Nouvelle version<small>ou faille connue</small></div><span class="arrow">→</span>
+    <div class="node key">Dependabot<small>chaque semaine</small></div><span class="arrow">→</span>
+    <div class="node">PR auto</div><span class="arrow">→</span>
+    <div class="node ok">CI ✓ → merge</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Un robot GitHub qui ouvre une PR quand une dépendance ou une action a une mise à jour ou une faille connue.</p></div>
+    <div><h4>Pourquoi</h4><p>L'épinglage fige les versions, et Dependabot les fait avancer de façon contrôlée, en passant par la CI.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>.github/dependabot.yml</code> (actions et paquets uv, hebdo), plus les alertes de sécurité activées sur le repo.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Le réentraînement planifié : on met à jour, mais on revalide avant de déployer.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Fusionner les PR Dependabot sans regarder si la CI est verte, ou les ignorer pendant des mois.</p></div>
+  </div>
+</article>
+
+<article class="card" id="c-defense">
+  <div class="head"><h3>Défense en profondeur</h3><span class="badge">P4</span><span class="badge">P8</span></div>
+  <div class="layers">
+    <div class="layer">1 · Ta machine : <code>.gitignore</code> + hook gitleaks au commit</div>
+    <div class="layer l2">2 · CI : gitleaks sur tout l'historique</div>
+    <div class="layer l3">3 · GitHub : secret scanning + push protection, qui refuse le push</div>
+  </div>
+  <div class="grid">
+    <div><h4>C'est quoi</h4><p>Plusieurs barrières indépendantes contre le même risque.</p></div>
+    <div><h4>Pourquoi</h4><p>Chaque barrière a des trous (<code>--no-verify</code>, faux négatifs…). Il faut que tous les trous s'alignent pour que ça passe.</p></div>
+    <div class="full"><h4>Chez nous</h4><p>Trois couches contre la fuite de secrets, décrites ci-dessus.</p></div>
+    <div class="ds"><h4>Analogie data science</h4><p>Un ensemble de modèles : chacun se trompe, mais rarement tous en même temps.</p></div>
+    <div class="trap"><h4>Piège courant</h4><p>Croire qu'une seule barrière suffit, puis la désactiver « juste une fois ».</p></div>
+  </div>
+</article>
+</section>
+
+<!-- ============ GLOSSAIRE ============ -->
+<section id="glossaire">
+<h2>Glossaire</h2>
+<dl class="gloss">
+  <dt>Branche</dt><dd>Ligne de travail parallèle à <code>main</code>, fusionnée via une PR.</dd>
+  <dt>CI</dt><dd>Intégration continue : vérifications automatiques à chaque push.</dd>
+  <dt>Checksum</dt><dd>Empreinte d'un fichier, qui prouve qu'il n'a pas été modifié.</dd>
+  <dt>Commit</dt><dd>Photo datée et signée d'un ensemble de modifications.</dd>
+  <dt>Défense en profondeur</dt><dd>Plusieurs barrières indépendantes contre un même risque.</dd>
+  <dt>Dependabot</dt><dd>Robot GitHub qui propose les mises à jour de dépendances.</dd>
+  <dt>gitleaks</dt><dd>Outil qui détecte les secrets (clés, tokens) dans le code et l'historique.</dd>
+  <dt>Hook pre-commit</dt><dd>Script lancé automatiquement avant chaque commit.</dd>
+  <dt>Lockfile</dt><dd>Fichier qui fige la version exacte de chaque dépendance (<code>uv.lock</code>).</dd>
+  <dt>Moindre privilège</dt><dd>Ne donner à chaque composant que les droits nécessaires.</dd>
+  <dt>Pull Request (PR)</dt><dd>Demande de fusion d'une branche, avec revue et CI.</dd>
+  <dt>Push protection</dt><dd>Fonction GitHub qui refuse un push contenant un secret connu.</dd>
+  <dt>Ruleset</dt><dd>Règles GitHub qui protègent une branche (PR obligatoire, CI verte…).</dd>
+  <dt>Runner</dt><dd>Machine (neuve à chaque fois) qui exécute un job GitHub Actions.</dd>
+  <dt>SHA</dt><dd>Empreinte unique et immuable d'un commit.</dd>
+  <dt>Shift-left</dt><dd>Déplacer les contrôles le plus tôt possible dans la chaîne.</dd>
+  <dt>Supply chain</dt><dd>Tout le code tiers dont on dépend (paquets, actions, binaires).</dd>
+</dl>
+</section>
+
+</main>
+</body>
+</html>
