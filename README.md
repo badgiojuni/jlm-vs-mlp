@@ -19,3 +19,11 @@ cp .env.example .env          # puis remplir les clés — .env n'est jamais com
 uv sync
 uvx pre-commit install        # hooks : ruff + gitleaks avant chaque commit
 ```
+
+## Lancer le pipeline
+
+```bash
+uv run --env-file .env python -m pipeline.ingest        # 1. nouveaux tweets → data/raw/
+uv run --env-file .env python -m pipeline.filter        # 2. vérifiable ? → data/claims.jsonl
+uv run --env-file .env python -m pipeline.eval_filter <modèles…>  # comparer des modèles
+```

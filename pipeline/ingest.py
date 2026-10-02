@@ -10,12 +10,11 @@ Usage : uv run --env-file .env python -m pipeline.ingest
 import json
 import logging
 import os
-import time
-import urllib.error
 import urllib.parse
-import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
+
+from pipeline.http import fetch_json
 
 log = logging.getLogger("ingest")
 
@@ -33,29 +32,8 @@ PARAMS = {
 }
 
 
-def get(path: str, params: dict, token: str, retries: int = 4) -> dict:
-    """GET avec retry + backoff sur 429 / 5xx / erreur réseau."""
-    url = f"{API}{path}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                return json.load(r)
-        except urllib.error.HTTPError as e:
-            if (e.code != 429 and e.code < 500) or attempt == retries - 1:
-                log.error("HTTP %s sur %s : %s", e.code, path, e.read().decode()[:500])
-                raise
-            reset = e.headers.get("x-rate-limit-reset")
-            wait = int(reset) - time.time() if e.code == 429 and reset else 5 * 2**attempt
-        except urllib.error.URLError as e:
-            if attempt == retries - 1:
-                raise
-            log.warning("réseau : %s", e.reason)
-            wait = 5 * 2**attempt
-        wait = min(max(wait, 1), 900)
-        log.warning("retry %d/%d dans %ds", attempt + 1, retries - 1, wait)
-        time.sleep(wait)
-    raise AssertionError("unreachable")
+def get(path: str, params: dict, token: str) -> dict:
+    return fetch_json(f"{API}{path}?{urllib.parse.urlencode(params)}", token)
 
 
 def load_existing(path: Path) -> tuple[set[str], dict[str, str]]:
