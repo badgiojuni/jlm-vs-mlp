@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapport du 2 octobre 2026</title>
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1f; --muted: #5f6368; --border: #e2e2de;
+  --accent: #2f5bea; --accent-soft: #e8eefd; --ok: #1e8a4c; --ok-soft: #e3f4ea;
+  --warn: #b25e09; --warn-soft: #fdf0e1; --code-bg: #f0f0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131417; --surface: #1c1d21; --text: #ececee; --muted: #a0a3a9; --border: #2e3036;
+    --accent: #7c9cff; --accent-soft: #1f2840; --ok: #4cc38a; --ok-soft: #16301f;
+    --warn: #f0a65a; --warn-soft: #33261a; --code-bg: #26272c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131417; --surface: #1c1d21; --text: #ececee; --muted: #a0a3a9; --border: #2e3036;
+  --accent: #7c9cff; --accent-soft: #1f2840; --ok: #4cc38a; --ok-soft: #16301f;
+  --warn: #f0a65a; --warn-soft: #33261a; --code-bg: #26272c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 0 16px 64px; }
+h1 { font-size: 2rem; margin: 40px 0 4px; letter-spacing: -0.02em; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; }
+p.lead { color: var(--muted); margin: 0 0 8px; }
+.prev { font-size: .9rem; }
+code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: .88em; }
+a { color: var(--accent); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .v { font-size: 1.9rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.2; }
+.tile .l { color: var(--muted); font-size: .85rem; }
+
+.timeline { list-style: none; padding: 0; margin: 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.timeline li { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: .9rem; }
+.timeline li b { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+.timeline .done { border-color: var(--ok); } .timeline .done b { color: var(--ok); }
+.timeline .doing { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); } .timeline .doing b { color: var(--accent); }
+.timeline .todo { color: var(--muted); }
+
+ol.log { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--border); }
+ol.log li { position: relative; padding: 0 0 14px 20px; }
+ol.log li::before { content: ""; position: absolute; left: -7px; top: 7px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+ol.log li.milestone::before { background: var(--ok); border-color: var(--ok); }
+ol.log .tag { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 6px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: .93rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+
+.incident { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--warn); border-radius: 10px; padding: 12px 16px; margin: 0 0 10px; }
+.incident h3 { margin: 0 0 6px; font-size: 1rem; }
+.incident dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: .93rem; }
+.incident dt { color: var(--muted); } .incident dd { margin: 0; }
+.status { font-size: .72rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); margin-left: 6px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { text-decoration: none; background: var(--accent-soft); color: var(--accent); padding: 4px 12px; border-radius: 999px; font-size: .9rem; }
+.chip small { opacity: .7; margin-left: 4px; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+.box.you { border-color: var(--warn); background: var(--warn-soft); }
+.box h3 { margin: 0 0 8px; font-size: 1rem; }
+.box ul { margin: 0; padding-left: 18px; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } .incident dl { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Rapport du 2 octobre 2026</h1>
+<p class="lead">Jour 1 : cadrage, socle DevOps du repo, puis ingestion des premiers tweets validée contre la vraie API X.</p>
+<p class="prev">Premier rapport · <a href="README.md">tous les rapports</a> · <a href="../dev-ops-education-followup.html">carnet DevOps</a></p>
+
+<h2>Chiffres du jour</h2>
+<div class="tiles">
+  <div class="tile"><div class="v">2 / 9</div><div class="l">étapes terminées (0 et 1)</div></div>
+  <div class="tile"><div class="v">2</div><div class="l">PR fusionnées, CI verte</div></div>
+  <div class="tile"><div class="v">6</div><div class="l">tweets ingérés (2 JLM · 4 MLP)</div></div>
+  <div class="tile"><div class="v">≈ 0,07 $</div><div class="l">API X (ingestion 0,05 + lookup 0,02) · OpenRouter : 0 $</div></div>
+</div>
+
+<h2>Avancement</h2>
+<ol class="timeline">
+  <li class="done"><b>0 · fait</b>Socle du repo</li>
+  <li class="done"><b>1 · fait</b>Ingestion tweets</li>
+  <li class="doing"><b>2 · à suivre</b>Filtre IA</li>
+  <li class="todo"><b>3</b>Fact-check IA</li>
+  <li class="todo"><b>4</b>Évaluation (golden set)</li>
+  <li class="todo"><b>5</b>Cron + CD</li>
+  <li class="todo"><b>6</b>Dashboard</li>
+  <li class="todo"><b>7</b>Observabilité</li>
+  <li class="todo"><b>8</b>Durcissement</li>
+</ol>
+
+<h2>Ce qui a été fait</h2>
+<ol class="log">
+  <li><span class="tag">Cadrage</span>Plan DevOps en 9 étapes. Architecture sans serveur : GitHub Actions (cron), données JSONL versionnées, site statique sur GitHub Pages.</li>
+  <li><span class="tag">Recherche</span>Comparatif des prix de l'API X (pay-per-use 0,005 $/post contre scrapers interdits par les CGU) et de la recherche web OpenRouter.</li>
+  <li><span class="tag">Outillage</span>Badge ponytail ajouté à la barre d'état de Claude Code.</li>
+  <li class="milestone"><span class="tag">Étape 0</span>Socle du repo : uv + lockfile, pre-commit (ruff, gitleaks), CI, Dependabot. Commit <a href="https://github.com/badgiojuni/jlm-vs-mlp/commit/bed9d96">bed9d96</a>.</li>
+  <li><span class="tag">GitHub</span>Repo public créé. Secret scanning et push protection, alertes Dependabot, ruleset <code>protect-main</code> (PR et CI obligatoires).</li>
+  <li><span class="tag">Vérif</span>Un faux token GitHub a bien été bloqué par gitleaks (<code>RuleID: github-pat</code>).</li>
+  <li><span class="tag">Docs</span>Skill <code>devops-education</code> et carnet DevOps (10 concepts de l'étape 0). <a href="https://github.com/badgiojuni/jlm-vs-mlp/pull/1">PR #1</a>, fusionnée par Théo.</li>
+  <li><span class="tag">Code</span><code>pipeline/ingest.py</code> : tweets et retweets, idempotent, retry avec backoff, coût estimé loggé. Deux tests sans réseau, ajoutés à la CI.</li>
+  <li><span class="tag">Prod</span>Premier vrai run : 6 tweets, 0,05 $. Relance : 0 nouveau tweet, 0 $, donc l'idempotence est vérifiée. IDs des comptes confirmés par X.</li>
+  <li class="milestone"><span class="tag">Étape 1</span><a href="https://github.com/badgiojuni/jlm-vs-mlp/pull/2">PR #2</a> fusionnée : ingestion, données et carnet de l'étape 1 (7 concepts).</li>
+  <li><span class="tag">Suivi</span>Skill <code>daily-report</code> et dossier <code>followup/</code> (ce rapport).</li>
+</ol>
+
+<h2>Décisions</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Décision</th><th>Alternative écartée</th><th>Pourquoi</th></tr>
+  <tr><td>API officielle X, en pay-per-use</td><td>twitterapi.io et autres scrapers</td><td>≈ 2 $/mois seulement ; un site politique public ne peut pas reposer sur une source qui viole les CGU</td></tr>
+  <tr><td>LLM via OpenRouter, modèles bon marché</td><td>API Anthropic directe</td><td>Coût. Le choix du modèle sera fait sur un golden set (étape 4)</td></tr>
+  <tr><td>Recherche web : outil <code>openrouter:web_search</code></td><td>Suffixe <code>:online</code></td><td>Le plugin <code>:online</code> est déprécié</td></tr>
+  <tr><td>Tweets et retweets, à partir du 2026-10-02</td><td>Historique depuis janvier, réponses incluses</td><td>Démarrer petit, ≈ 20 $ d'historique économisés</td></tr>
+  <tr><td>Pas de serveur ni de BDD : JSONL dans git et site statique</td><td>Backend avec Postgres</td><td>≈ 20 tweets/jour : la solution simple suffit (<a href="../dev-ops-education-followup.html#principes">P9</a>)</td></tr>
+  <tr><td>Repo public, tout passe par PR</td><td>Repo privé, push direct</td><td>Transparence de la méthode, et apprentissage du workflow pro</td></tr>
+  <tr><td>IDs des comptes X figés dans le code</td><td>Lookup du pseudo à chaque run</td><td>0,01 $ par lookup, et l'ID survit à un changement de pseudo</td></tr>
+</table>
+</div>
+
+<h2>Incidents et blocages</h2>
+<div class="incident">
+  <h3>Token X refusé <span class="status">résolu</span></h3>
+  <dl>
+    <dt>Symptôme</dt><dd><code>403 client-not-enrolled</code> sur le premier appel</dd>
+    <dt>Cause</dt><dd>L'App X n'était pas rattachée à un <i>Project</i> dans la console</dd>
+    <dt>Résolution</dt><dd>Théo a rattaché l'App et régénéré le token. Le code a été écrit et testé hors ligne en attendant (<a href="../dev-ops-education-followup.html#c-mock">tests avec mock</a>)</dd>
+  </dl>
+</div>
+<div class="incident">
+  <h3><code>gh pr edit</code> en erreur <span class="status">contourné</span></h3>
+  <dl>
+    <dt>Symptôme</dt><dd>Erreur GraphQL « Projects (classic) is being deprecated »</dd>
+    <dt>Cause</dt><dd>gh 2.45 (version Ubuntu) appelle une API GitHub retirée</dd>
+    <dt>Résolution</dt><dd>Passage par l'API REST (<code>gh api -X PATCH …/pulls/2</code>). Mettre gh à jour réglera le problème durablement</dd>
+  </dl>
+</div>
+
+<h2>Concepts DevOps vus aujourd'hui</h2>
+<div class="chips">
+  <a class="chip" href="../dev-ops-education-followup.html#c-git">Versioning git<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-pr">PR et protection de main<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-secrets">Secrets<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-shiftleft">Shift-left / pre-commit<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-ci">CI<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-repro">Lockfile<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-supply">Épinglage SHA<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-privilege">Moindre privilège<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-dependabot">Dependabot<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-defense">Défense en profondeur<small>étape 0</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-idempotence">Idempotence<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-crash">Ordre d'écriture<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-bronze">Couche bronze<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-retry">Retry / backoff<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-env">Variables d'env<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-mock">Tests avec mock<small>étape 1</small></a>
+  <a class="chip" href="../dev-ops-education-followup.html#c-cost">Coût par run<small>étape 1</small></a>
+</div>
+
+<h2>La suite</h2>
+<div class="cols">
+  <div class="box">
+    <h3>Prochaines étapes</h3>
+    <ul>
+      <li>Étape 2 : filtre IA « affirmation factuelle ? » via OpenRouter</li>
+      <li>Comparer 2 ou 3 modèles bon marché sur un petit jeu annoté</li>
+      <li>Traiter le texte des tweets comme non fiable (injection de prompt)</li>
+    </ul>
+  </div>
+  <div class="box you">
+    <h3>Attendu de Théo</h3>
+    <ul>
+      <li>Valider la règle sur les retweets : fact-checker au nom de celui qui retweete, avec la mention « retweeté de @X »</li>
+      <li>Fusionner la PR de ce rapport</li>
+      <li>Optionnel : mettre à jour <code>gh</code></li>
+    </ul>
+  </div>
+</div>
+
+</main>
+</body>
+</html>
