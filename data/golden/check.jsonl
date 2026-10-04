@@ -1,0 +1,15 @@
+{"claim": "Le taux de chômage en France était d'environ 7,5 % de la population active au quatrième trimestre 2023, selon l'INSEE.", "date": "2026-10-01", "verdict": "vrai", "note": "INSEE : 7,5 % au T4 2023"}
+{"claim": "La dette publique française a dépassé 3 000 milliards d'euros fin 2023.", "date": "2026-10-01", "verdict": "vrai", "note": "INSEE : 3 101 Md€ fin 2023"}
+{"claim": "La réforme des retraites de 2023 a relevé l'âge légal de départ de 62 à 64 ans.", "date": "2026-10-01", "verdict": "vrai", "note": "loi du 14 avril 2023"}
+{"claim": "Le Rassemblement national est arrivé en tête des élections européennes de juin 2024 en France avec plus de 31 % des voix.", "date": "2026-10-01", "verdict": "vrai", "note": "31,37 %"}
+{"claim": "Marine Le Pen a été condamnée le 31 mars 2025 à une peine d'inéligibilité dans l'affaire des assistants parlementaires européens du FN.", "date": "2026-10-01", "verdict": "vrai", "note": "tribunal correctionnel de Paris, exécution provisoire"}
+{"claim": "La France compte plus de 10 millions d'immigrés en 2023.", "date": "2026-10-01", "verdict": "faux", "note": "INSEE : 7,3 millions d'immigrés en 2023 (10,7 % de la population)"}
+{"claim": "Le SMIC net mensuel à temps plein dépassait 2 000 euros en 2024.", "date": "2026-10-01", "verdict": "faux", "note": "~1 400 € net"}
+{"claim": "La France est le premier contributeur net au budget de l'Union européenne.", "date": "2026-10-01", "verdict": "faux", "note": "l'Allemagne est 1re, la France 2e"}
+{"claim": "Le Nouveau Front populaire a obtenu la majorité absolue à l'Assemblée nationale aux législatives de juillet 2024.", "date": "2026-10-01", "verdict": "faux", "note": "~180 sièges sur 577, majorité = 289"}
+{"claim": "Emmanuel Macron a supprimé l'impôt sur la fortune.", "date": "2026-10-01", "verdict": "trompeur", "note": "ISF remplacé en 2018 par l'IFI (impôt sur la fortune immobilière)"}
+{"claim": "La réforme des retraites de 2023 a été adoptée sans aucun vote du Parlement.", "date": "2026-10-01", "verdict": "trompeur", "note": "49.3 à l'Assemblée (motions de censure rejetées) mais le Sénat a voté le texte"}
+{"claim": "Le gouvernement a décidé d'une escalade dans le domaine des interpellations ou du maintien de l'ordre.", "date": "2026-10-01", "verdict": "invérifiable", "note": "intention prêtée, extraite d'un tweet de JLM (data/claims.jsonl)"}
+{"claim": "Emmanuel Macron méprise les Français.", "date": "2026-10-01", "verdict": "invérifiable", "note": "jugement de valeur"}
+{"claim": "La France sera en faillite avant 2030.", "date": "2026-10-01", "verdict": "invérifiable", "note": "prédiction"}
+{"claim": "Le Rassemblement national est le seul parti qui défend vraiment les Français.", "date": "2026-10-01", "verdict": "invérifiable", "note": "opinion"}

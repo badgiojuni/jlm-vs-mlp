@@ -25,5 +25,7 @@ uvx pre-commit install        # hooks : ruff + gitleaks avant chaque commit
 ```bash
 uv run --env-file .env python -m pipeline.ingest        # 1. nouveaux tweets → data/raw/
 uv run --env-file .env python -m pipeline.filter        # 2. vérifiable ? → data/claims.jsonl
-uv run --env-file .env python -m pipeline.eval_filter <modèles…>  # comparer des modèles
+uv run --env-file .env python -m pipeline.check         # 3. fact-check + web → data/checks.jsonl
+uv run --env-file .env python -m pipeline.eval_filter <modèles…>  # comparer des modèles (filtre)
+uv run --env-file .env python -m pipeline.eval_check <modèles…>   # comparer des modèles (fact-check)
 ```
