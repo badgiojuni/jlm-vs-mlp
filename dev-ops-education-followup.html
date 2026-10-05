@@ -596,7 +596,7 @@ dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); 
   <div class="flow">
     <div class="node bad">engine: "auto"<small>→ recherche native Google</small></div><span class="arrow">→</span>
     <div class="node bad">0,59 $<small>pour UNE affirmation</small></div>
-    <div class="node ok">engine: "parallel"<small>max_total_results: 15</small></div><span class="arrow">→</span>
+    <div class="node ok">engine: "parallel"<small>max_total_results: 10</small></div><span class="arrow">→</span>
     <div class="node ok">0,01–0,04 $</div>
   </div>
   <div class="grid">
@@ -651,7 +651,7 @@ dl.gloss dt { font-weight: 600; } dl.gloss dd { margin: 0; color: var(--muted); 
   <div class="grid">
     <div><h4>C'est quoi</h4><p>Une classe de sortie qui dit « je ne peux pas trancher », au lieu de forcer un vrai/faux.</p></div>
     <div><h4>Pourquoi</h4><p>Le filtre laisse passer des opinions déguisées en faits. Sans issue de secours, le modèle invente un verdict. Une abstention honnête vaut mieux qu'une erreur publiée.</p></div>
-    <div class="full"><h4>Chez nous</h4><p><code>VERDICTS</code> dans <code>check.py</code> : vrai · trompeur · faux · invérifiable. <code>eval_check.py</code> compte à part les <b>erreurs graves</b> (vrai ↔ faux), bien pires qu'une abstention. Sur les 15 affirmations de <code>data/golden/check.jsonl</code> : DeepSeek v4.1 Flash 13/15 (0,012 $), Gemini 3.5 Flash 14/15 (0,038 $), <b>Claude Sonnet 5.5 14/15</b> (0,023 $), sans aucune erreur grave. Sonnet est retenu : sa seule erreur est une réponse vide (retentée au run suivant), il n'a donné aucun mauvais verdict. Toutes les erreurs concernent « trompeur », la classe la plus difficile.</p></div>
+    <div class="full"><h4>Chez nous</h4><p><code>VERDICTS</code> dans <code>check.py</code> : vrai · trompeur · faux · invérifiable. <code>eval_check.py</code> compte à part les <b>erreurs graves</b> (vrai ↔ faux), bien pires qu'une abstention. Sur les 15 affirmations de <code>data/golden/check.jsonl</code> : DeepSeek v4.1 Flash 13/15 (0,012 $), Gemini 3.5 Flash 14/15 (0,038 $), Claude Sonnet 5.5 14/15 (0,023 $), sans aucune erreur grave. <b>DeepSeek est retenu</b> : un seul exemple d'écart sur 15, c'est du bruit, pas une preuve, alors que le coût est divisé par deux. Le choix sera retranché sur le golden set élargi (étape 4). Toutes les erreurs concernent « trompeur », la classe la plus difficile.</p></div>
     <div class="ds"><h4>Analogie data science</h4><p>L'option de rejet d'un classifieur : sous un seuil de confiance, on ne prédit pas. Et une matrice de coûts asymétrique.</p></div>
     <div class="trap"><h4>Piège courant</h4><p>Un modèle qui s'abstient trop, ce qui est inutile. Le golden set mélange donc les quatre verdicts pour mesurer les deux dérives.</p></div>
   </div>

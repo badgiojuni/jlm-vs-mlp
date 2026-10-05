@@ -21,14 +21,15 @@ from pipeline.llm import chat, read_jsonl, run
 log = logging.getLogger("check")
 
 CHECKS = Path("data/checks.jsonl")
-MODEL = os.environ.get("CHECK_MODEL", "anthropic/claude-sonnet-5.5")  # choisi par eval_check
+# eval_check : 13/15 contre 14/15 pour Sonnet, mais 2x moins cher. À retrancher à l'étape 4.
+MODEL = os.environ.get("CHECK_MODEL", "deepseek/deepseek-v4.1-flash")
 MAX_RUN_COST = 1.00  # $ : ~0,01-0,04 $ par affirmation
-PROMPT_VERSION = "check-v1"  # à incrémenter à CHAQUE modif de SYSTEM, VERDICTS ou SEARCH
+PROMPT_VERSION = "check-v2"  # à incrémenter à CHAQUE modif de SYSTEM, VERDICTS ou SEARCH
 VERDICTS = ["vrai", "trompeur", "faux", "invérifiable"]
 # Moteur imposé : avec "auto", Gemini a pris la recherche native Google, 0,59 $ pour UN appel.
 SEARCH = {
     "type": "openrouter:web_search",
-    "parameters": {"engine": "parallel", "max_results": 5, "max_total_results": 15},
+    "parameters": {"engine": "parallel", "max_results": 5, "max_total_results": 10},
 }
 SYSTEM = """Tu es fact-checker pour un site de vérification politique, neutre et rigoureux.
 

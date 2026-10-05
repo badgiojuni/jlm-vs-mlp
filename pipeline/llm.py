@@ -30,7 +30,7 @@ def chat(model: str, api_key: str, system: str, user: str, **extra) -> dict:
     choice = r["choices"][0]
     if not choice["message"].get(
         "content"
-    ):  # rare avec Sonnet + recherche ; retenté au run suivant
+    ):  # rare avec outil de recherche ; retenté au run suivant
         log.warning("réponse vide, finish_reason=%s", choice.get("finish_reason"))
     return choice["message"]
 
