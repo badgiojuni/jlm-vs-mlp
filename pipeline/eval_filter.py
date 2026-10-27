@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 
+from pipeline import llm
 from pipeline.filter import classify, tweet_text
 
 GOLDEN = Path("data/golden/filter.jsonl")
@@ -33,24 +34,22 @@ def main() -> None:
     golden = [json.loads(line) for line in GOLDEN.read_text().splitlines()]
     print(f"{'modèle':40} {'acc':>5} {'préc':>5} {'rappel':>6} {'coût $':>8} {'s/tweet':>7}")
     for model in sys.argv[1:]:
-        pairs, cost, t0 = [], 0.0, time.time()
+        pairs, start, t0 = [], llm.spent, time.time()
         for g in golden:
             text = tweet_text(g["record"]) if "record" in g else g["text"]
             try:
-                out, c = classify(text, model, key)
-                pred = out["verifiable"]
+                pred = classify(text, model, key)["verifiable"]
             except (ValueError, KeyError, OSError) as e:  # schéma cassé / HTTP = erreur comptée
                 print(f"  ! {model} sur {g['source']} : {e}", file=sys.stderr)
-                pred, c = not g["verifiable"], 0.0
+                pred = not g["verifiable"]
             pairs.append((g["verifiable"], pred))
-            cost += c
             if pred != g["verifiable"]:
                 print(f"  ✗ {model} : attendu {g['verifiable']} | {text[:80]!r}", file=sys.stderr)
         s = score(pairs)
         dt = (time.time() - t0) / len(golden)
         print(
             f"{model:40} {s['accuracy']:5.2f} {s['precision']:5.2f} {s['recall']:6.2f}"
-            f" {cost:8.5f} {dt:7.1f}"
+            f" {llm.spent - start:8.5f} {dt:7.1f}"
         )
 
 

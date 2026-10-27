@@ -11,17 +11,14 @@ import json
 import logging
 import os
 import re
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.error import HTTPError
 
-from pipeline.http import fetch_json
 from pipeline.ingest import RAW
+from pipeline.llm import chat, read_jsonl, run
 
 log = logging.getLogger("filter")
 
-OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
 CLAIMS = Path("data/claims.jsonl")
 MODEL = os.environ.get("FILTER_MODEL", "google/gemini-3.5-flash-lite")  # choisi par eval_filter
 MAX_RUN_COST = 0.50  # $ : coupe-circuit si un bug fait exploser la conso
@@ -72,24 +69,20 @@ def tweet_text(rec: dict) -> str:
     return text
 
 
-def classify(text: str, model: str, api_key: str) -> tuple[dict, float]:
+def classify(text: str, model: str, api_key: str) -> dict:
     """Appelle le LLM et valide sa sortie (la sortie d'un LLM est une entrée non fiable)."""
-    body = {
-        "model": model,
-        "temperature": 0,
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f"<tweet>\n{text}\n</tweet>"},
-        ],
-        "response_format": {
+    msg = chat(
+        model,
+        api_key,
+        SYSTEM,
+        f"<tweet>\n{text}\n</tweet>",
+        response_format={
             "type": "json_schema",
             "json_schema": {"name": "filtre", "strict": True, "schema": SCHEMA},
         },
-        "provider": {"require_parameters": True},  # seuls les hébergeurs qui respectent le schéma
-        "usage": {"include": True},
-    }
-    r = fetch_json(OPENROUTER, api_key, body)
-    out = json.loads(r["choices"][0]["message"]["content"])
+        provider={"require_parameters": True},  # seuls les hébergeurs qui respectent le schéma
+    )
+    out = json.loads(msg["content"])
     if not (
         isinstance(out.get("verifiable"), bool)
         and isinstance(out.get("claims"), list)
@@ -98,51 +91,27 @@ def classify(text: str, model: str, api_key: str) -> tuple[dict, float]:
         raise ValueError(f"sortie hors schéma : {out}")
     if not out["verifiable"]:
         out["claims"] = []
-    return out, r.get("usage", {}).get("cost", 0.0)
+    return out
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     api_key = os.environ["OPENROUTER_API_KEY"]
-    done = set()
-    if CLAIMS.exists():
-        done = {json.loads(line)["tweet_id"] for line in CLAIMS.read_text().splitlines()}
-    todo = [
-        r for r in map(json.loads, RAW.read_text().splitlines()) if r["tweet"]["id"] not in done
-    ]
-    cost = errors = kept = n = 0
-    with CLAIMS.open("a") as f:
-        for rec in todo:
-            if cost >= MAX_RUN_COST:
-                log.warning("coupe-circuit : %.3f $ atteints, arrêt du run", cost)
-                break
-            try:
-                out, c = classify(tweet_text(rec), MODEL, api_key)
-            except (ValueError, KeyError, HTTPError) as e:  # sortie invalide ou refus : on log
-                log.error("tweet %s : %s", rec["tweet"]["id"], e)
-                errors += 1
-                continue
-            cost += c
-            kept += out["verifiable"]
-            n += 1
-            row = {
-                "tweet_id": rec["tweet"]["id"],
-                "account": rec["account"],
-                **out,
-                "model": MODEL,
-                "prompt_version": PROMPT_VERSION,
-                "filtered_at": datetime.now(UTC).isoformat(timespec="seconds"),
-            }
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-            f.flush()  # chaque tweet filtré est acquis, même si le run plante après
-    log.info(
-        "%d tweets filtrés, %d vérifiables, %d erreurs, coût %.4f $",
-        n,
-        kept,
-        errors,
-        cost,
-    )
-    sys.exit(1 if errors else 0)  # un run avec erreurs doit apparaître en rouge
+    done = {r["tweet_id"] for r in read_jsonl(CLAIMS)}
+    todo = [(r["tweet"]["id"], r) for r in read_jsonl(RAW) if r["tweet"]["id"] not in done]
+
+    def process(rec: dict) -> dict:
+        out = classify(tweet_text(rec), MODEL, api_key)
+        return {
+            "tweet_id": rec["tweet"]["id"],
+            "account": rec["account"],
+            **out,
+            "model": MODEL,
+            "prompt_version": PROMPT_VERSION,
+            "filtered_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        }
+
+    run(todo, process, CLAIMS, MAX_RUN_COST)
 
 
 if __name__ == "__main__":
